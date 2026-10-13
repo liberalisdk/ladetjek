@@ -51,24 +51,37 @@ main{flex:1;display:grid;grid-template-columns:minmax(300px,32%) 1fr;gap:40px;pa
 
 .chartwrap{display:flex;flex-direction:column;min-height:0;min-width:0}
 .viewtabs{align-self:flex-end;margin-bottom:8px}
-.chart{position:relative;flex:1;display:flex;align-items:flex-end;gap:4px;min-height:220px;padding-top:56px}
-.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
-.bar{border-radius:6px 6px 2px 2px;min-height:6px;width:100%}
+.chart{position:relative;flex:1;display:grid;grid-template-columns:60px 1fr;column-gap:12px;min-height:220px;padding-top:56px}
+.yaxis{position:relative}
+.yaxis span{position:absolute;right:0;transform:translateY(50%);color:var(--muted);font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.yaxis .unit{bottom:auto;top:-44px;transform:none}
+.bars{position:relative;display:flex;align-items:flex-end;gap:4px;height:100%;touch-action:pan-y;cursor:crosshair}
+.gridline{position:absolute;left:0;right:0;border-top:1px solid var(--line);pointer-events:none}
+.gridline.zero{border-top-color:var(--muted)}
+.col{position:relative;z-index:1;flex:1;display:flex;align-items:flex-end;height:100%;min-width:0}
+.bar{border-radius:6px 6px 2px 2px;min-height:4px;width:100%;transition:opacity .12s}
 .g{--c:var(--green)}.a{--c:var(--amber)}.r{--c:var(--red)}
 .bar{background:var(--c)}
 .bar.fc{background:repeating-linear-gradient(135deg,var(--c) 0 7px,color-mix(in srgb,var(--c) 45%,transparent) 7px 12px)}
 .bar.cur{box-shadow:0 0 0 3px var(--text)}
-.blocks{gap:10px}
+.bars.scrub .bar{opacity:.4}
+.bars.scrub .bar.hl{opacity:1}
+.blocks .bars{gap:10px}
 .blocks .bar{border-radius:10px}
-.blab{text-align:center;margin-top:10px;color:var(--text);font-size:17px;line-height:1.2}
-.blab svg{display:block;margin:0 auto 4px;width:24px;height:24px}
-.blab.fc{color:var(--muted)}
-.window{position:absolute;top:8px;height:40px;border:3px solid var(--text);border-bottom:none;border-radius:10px 10px 0 0;display:flex;justify-content:center;font-weight:600;font-size:18px;white-space:nowrap;pointer-events:none}
+.guide{position:absolute;top:0;bottom:0;border-left:2px dashed var(--text);opacity:.6;pointer-events:none;display:none;z-index:2}
+.tip{position:absolute;z-index:3;background:var(--text);color:var(--asphalt);border-radius:12px;padding:10px 14px;font-size:17px;line-height:1.3;white-space:nowrap;pointer-events:none;display:none;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.tip b{display:block;font-family:var(--cond);font-size:30px;font-weight:700;line-height:1.1}
+.tip em{font-style:normal;opacity:.7}
+.window{position:absolute;top:-48px;height:40px;border:3px solid var(--text);border-bottom:none;border-radius:10px 10px 0 0;display:flex;justify-content:center;font-weight:600;font-size:18px;white-space:nowrap;pointer-events:none}
 .window span{background:var(--asphalt);padding:0 10px;margin-top:-14px;height:24px;line-height:24px}
-.daysep{position:absolute;top:56px;bottom:0;border-left:2px dashed var(--line);pointer-events:none}
-.daysep span{position:absolute;top:-2px;left:8px;color:var(--muted);font-size:17px;white-space:nowrap}
-.axis{display:flex;gap:4px;margin-top:10px;color:var(--muted);font-size:17px;font-variant-numeric:tabular-nums}
+.daysep{position:absolute;top:0;bottom:0;border-left:2px dashed var(--line);pointer-events:none}
+.axis{display:flex;gap:4px;margin-top:10px;padding-left:72px;color:var(--muted);font-size:17px;font-variant-numeric:tabular-nums}
 .axis div{flex:1;white-space:nowrap;min-width:0}
+.axis .day{color:var(--text)}
+.axis.blocks{gap:10px}
+.axis.blocks div{text-align:center;color:var(--text);line-height:1.2}
+.axis.blocks div.fc{color:var(--muted)}
+.axis.blocks svg{display:block;margin:0 auto 4px;width:24px;height:24px}
 .legend{display:flex;gap:24px;margin-top:16px;color:var(--muted);font-size:17px;flex-wrap:wrap}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:8px;vertical-align:-1px}
 .legend i.fc{background:repeating-linear-gradient(135deg,var(--muted) 0 3px,transparent 3px 6px)}
@@ -93,7 +106,8 @@ dialog h2{font-family:var(--cond);font-size:30px;margin:0 0 20px}
 @media (max-width:900px){
   main{grid-template-columns:1fr;gap:24px;padding:16px 20px}
   header{padding:16px 20px 0}.notice{margin:12px 20px 0}
-  .blocks{gap:4px}.blab{font-size:14px}
+  .blocks .bars,.axis.blocks{gap:4px}.axis.blocks div{font-size:14px}
+  .chart{grid-template-columns:44px 1fr;column-gap:8px}.axis{padding-left:52px}
 }
 </style>
 </head>
@@ -217,7 +231,8 @@ dialog h2{font-family:var(--cond);font-size:30px;margin:0 0 20px}
         if (!d.prices) continue;
         for (const p of d.prices){
           if (p.price == null) continue;
-          rows.push({date:d.date, hour:p.hour, price:p.price*100 + (+cfg.supplier||0), fc:d.type === "forecast"});
+          rows.push({date:d.date, hour:p.hour, price:p.price*100 + (+cfg.supplier||0), fc:d.type === "forecast",
+            min:p.min!=null ? p.min*100 + (+cfg.supplier||0) : null, max:p.max!=null ? p.max*100 + (+cfg.supplier||0) : null});
         }
       }
       if (!rows.length) throw new Error("tom");
@@ -317,24 +332,81 @@ dialog h2{font-family:var(--cond);font-size:30px;margin:0 0 20px}
     cfg.view === "days" ? drawBlocks(bl, now) : drawHours(future.slice(0,48), w, base === known, now);
   }
 
+  // Pæn prisakse: 3-5 runde trin fra 0 (eller under, ved negative priser)
+  function scale(vals){
+    const lo = Math.min(0,...vals), hi = Math.max(1,...vals);
+    const raw = (hi-lo)/4, mag = 10**Math.floor(Math.log10(raw));
+    const step = [1,2,2.5,5,10].map(m=>m*mag).find(x=>x>=raw);
+    const yMin = Math.floor(lo/step)*step, yMax = Math.ceil(hi/step)*step;
+    const ticks = []; for (let v=yMin; v<=yMax+step/2; v+=step) ticks.push(Math.round(v*100)/100);
+    return {ticks, pct: v => Math.max(0,(v-yMin)/(yMax-yMin)*100)};
+  }
+
+  function frame(sc, isBlocks){
+    const chart = $("chart");
+    chart.className = "chart" + (isBlocks ? " blocks" : ""); chart.innerHTML = "";
+    const y = document.createElement("div"); y.className = "yaxis";
+    const bars = document.createElement("div"); bars.className = "bars";
+    y.innerHTML = '<span class="unit">øre/kWh</span>';
+    sc.ticks.forEach(v => {
+      const t = document.createElement("span"); t.style.bottom = sc.pct(v)+"%"; t.textContent = Math.round(v); y.appendChild(t);
+      const g = document.createElement("div"); g.className = "gridline" + (v===0?" zero":""); g.style.bottom = sc.pct(v)+"%"; bars.appendChild(g);
+    });
+    chart.append(y, bars);
+    const axis = $("axis"); axis.innerHTML = ""; axis.className = "axis" + (isBlocks ? " blocks" : "");
+    return bars;
+  }
+
+  let hideScrub = null;
+  document.addEventListener("pointerdown", e => { if (hideScrub) hideScrub(e); });
+
+  // Scrubbing: hold musen over eller træk fingeren hen over søjlerne
+  function scrub(bars, n, heights, info){
+    const tip = document.createElement("div"); tip.className = "tip";
+    const guide = document.createElement("div"); guide.className = "guide";
+    bars.append(guide, tip);
+    const cols = [...bars.querySelectorAll(".bar")];
+    let last = -1;
+    function show(e){
+      const r = bars.getBoundingClientRect();
+      const i = Math.max(0, Math.min(n-1, Math.floor((e.clientX - r.left)/r.width*n)));
+      if (i === last && tip.style.display === "block") return;
+      last = i;
+      bars.classList.add("scrub");
+      cols.forEach((c,k) => c.classList.toggle("hl", k===i));
+      tip.innerHTML = info(i); tip.style.display = "block"; guide.style.display = "block";
+      const cx = (i+0.5)/n*r.width, tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.max(0, Math.min(r.width - tw, cx - tw/2)) + "px";
+      tip.style.bottom = Math.min(heights[i]/100*r.height + 14, r.height - th) + "px";
+      guide.style.left = (cx - 1) + "px";
+    }
+    function hide(){ last = -1; bars.classList.remove("scrub"); cols.forEach(c=>c.classList.remove("hl")); tip.style.display = guide.style.display = "none"; }
+    bars.addEventListener("pointerdown", show);
+    bars.addEventListener("pointermove", show);
+    bars.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hide(); });
+    hideScrub = e => { if (!bars.contains(e.target)) hide(); };
+  }
+
   function drawHours(view, w, wInView, now){
-    const chart = $("chart"), axis = $("axis");
-    chart.className = "chart"; chart.innerHTML = ""; axis.innerHTML = ""; axis.style.display = "";
-    const prices = view.map(r=>r.price), cls = tertiles(prices);
-    const lo = Math.min(0,...prices), hi = Math.max(...prices);
+    const prices = view.map(r=>r.price), cls = tertiles(prices), sc = scale(prices);
+    const bars = frame(sc, false), axis = $("axis");
+    const heights = prices.map(sc.pct);
+    const dayName = d => d===now.date ? "i dag" : d===addDays(now.date,1) ? "i morgen" : wd(d);
+    const changes = view.map((r,i)=>i>0 && r.date!==view[i-1].date ? i : -99).filter(i=>i>=0);
     view.forEach((r,i) => {
       const col = document.createElement("div"); col.className = "col";
       const b = document.createElement("div");
       b.className = `bar ${cls(r.price)}${r.fc?" fc":""}${i===0?" cur":""}`;
-      b.style.height = (6 + 94*(r.price-lo)/((hi-lo)||1)) + "%";
-      b.title = `${wd(r.date)} kl. ${pad(r.hour)}: ${Math.round(r.price)} øre${r.fc?" (prognose)":""}`;
-      col.appendChild(b); chart.appendChild(col);
-      const a = document.createElement("div"); a.textContent = i%3===0 ? pad(r.hour) : ""; axis.appendChild(a);
-      if (i>0 && r.date !== view[i-1].date){
+      b.style.height = heights[i] + "%";
+      col.appendChild(b); bars.appendChild(col);
+      const newDay = i>0 && r.date !== view[i-1].date;
+      const a = document.createElement("div");
+      if (newDay){ a.textContent = dayName(r.date); a.className = "day"; }
+      else if (i%3===0 && !changes.some(c => Math.abs(c - i) <= 2)) a.textContent = pad(r.hour);
+      axis.appendChild(a);
+      if (newDay){
         const s = document.createElement("div"); s.className = "daysep";
-        s.style.left = `calc(${i/view.length*100}% - 2px)`;
-        s.innerHTML = `<span>${r.date===addDays(now.date,1)?"i morgen":wd(r.date)}</span>`;
-        chart.appendChild(s);
+        s.style.left = `calc(${i/view.length*100}% - 2px)`; bars.appendChild(s);
       }
     });
     if (wInView && w.i + w.n <= view.length){
@@ -342,24 +414,34 @@ dialog h2{font-family:var(--cond);font-size:30px;margin:0 0 20px}
       box.style.left = (w.i/view.length*100) + "%";
       box.style.width = `calc(${w.n/view.length*100}% - 4px)`;
       box.innerHTML = `<span>${Math.round(w.avg)} øre</span>`;
-      chart.appendChild(box);
+      bars.appendChild(box);
     }
+    scrub(bars, view.length, heights, i => {
+      const r = view[i];
+      const extra = r.fc ? (r.min!=null ? `<em>Prognose, forventet ${Math.round(r.min)}–${Math.round(r.max)}</em>` : "<em>Prognose</em>")
+                         : (i===0 ? "<em>Nu</em>" : "");
+      return `${dayName(r.date)} kl. ${pad(r.hour)}–${pad((r.hour+1)%24)}<b>${Math.round(r.price)} øre</b>${extra}`;
+    });
   }
 
   function drawBlocks(bl, now){
-    const chart = $("chart"), axis = $("axis");
-    chart.className = "chart blocks"; chart.innerHTML = ""; axis.innerHTML = ""; axis.style.display = "none";
-    const vals = bl.map(b=>b.value), cls = tertiles(vals);
-    const lo = Math.min(0,...vals), hi = Math.max(...vals);
-    bl.forEach(b => {
+    const vals = bl.map(b=>b.value), cls = tertiles(vals), sc = scale(vals);
+    const bars = frame(sc, true), axis = $("axis");
+    const heights = vals.map(sc.pct);
+    const dayName = d => d===now.date ? "i dag" : d===addDays(now.date,1) ? "i morgen" : wd(d);
+    bl.forEach((b,i) => {
       const col = document.createElement("div"); col.className = "col";
       const bar = document.createElement("div");
       bar.className = `bar ${cls(b.value)}${b.fc?" fc":""}`;
-      bar.style.height = `calc(${10 + 90*(b.value-lo)/((hi-lo)||1)}% - 60px)`;
-      bar.title = `${wd(b.date)} ${b.kind}: ${Math.round(b.value)} øre, kl. ${pad(b.start.hour)}–${pad((b.end.hour+1)%24)}`;
-      const lab = document.createElement("div"); lab.className = "blab" + (b.fc?" fc":"");
-      lab.innerHTML = (b.kind==="dag"?SUN:MOON) + (b.date===now.date?"i dag":wd(b.date));
-      col.append(bar, lab); chart.appendChild(col);
+      bar.style.height = heights[i] + "%";
+      col.appendChild(bar); bars.appendChild(col);
+      const lab = document.createElement("div"); if (b.fc) lab.className = "fc";
+      lab.innerHTML = (b.kind==="dag"?SUN:MOON) + wd(b.date);
+      axis.appendChild(lab);
+    });
+    scrub(bars, bl.length, heights, i => {
+      const b = bl[i];
+      return `${dayName(b.date)} ${b.kind==="dag"?"dag":"nat"}<b>${Math.round(b.value)} øre</b><em>Billigst kl. ${pad(b.start.hour)}–${pad((b.end.hour+1)%24)}${b.fc?", prognose":""}</em>`;
     });
   }
 
