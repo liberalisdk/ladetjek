@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ladetjek</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --asphalt:#1a1e24; --panel:#232831; --line:#323946;
+  --text:#eef1f4; --muted:#8e97a4;
+  --green:#3ecf6e; --amber:#f2b632; --red:#ef4b3f;
+  --font:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"Barlow Semi Condensed","Barlow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--asphalt);color:var(--text);font-family:var(--font);font-size:20px;
+  display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent;user-select:none}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--text);outline-offset:3px}
+
+header{display:flex;align-items:center;gap:20px;padding:20px 40px 0;flex-wrap:wrap}
+h1{font-family:var(--cond);font-weight:700;font-size:30px;margin:0}
+.place{color:var(--muted);font-size:20px}
+.clock{color:var(--muted);font-size:22px;margin-left:auto;font-variant-numeric:tabular-nums}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:14px;min-width:64px;height:56px;padding:0 18px;font-size:20px}
+
+main{flex:1;display:grid;grid-template-columns:minmax(300px,32%) 1fr;gap:40px;padding:24px 40px 28px;min-height:0}
+
+.verdict{display:flex;flex-direction:column;justify-content:center;gap:8px;min-width:0}
+.state{font-family:var(--cond);font-weight:700;font-size:clamp(48px,6.5vw,92px);line-height:.95;margin:0}
+.state.now{color:var(--green)}
+.when{font-size:26px;margin:6px 0 0}
+.sub{font-size:19px;color:var(--muted);margin:0;line-height:1.4}
+.hint{font-size:19px;margin:10px 0 0;padding:12px 16px;border-left:4px solid var(--green);background:var(--panel);border-radius:0 10px 10px 0;line-height:1.35;display:none}
+.hint.show{display:block}
+.price{display:flex;align-items:baseline;gap:10px;margin-top:22px}
+.price b{font-family:var(--cond);font-weight:500;font-size:56px;font-variant-numeric:tabular-nums}
+.price span{color:var(--muted);font-size:19px}
+.dot{width:16px;height:16px;border-radius:50%;display:inline-block;align-self:center}
+.durlabel{color:var(--muted);font-size:18px;margin-top:22px}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
+.chips button{background:transparent;border:1px solid var(--line);border-radius:14px;height:56px;min-width:72px;padding:0 16px;font-size:20px}
+.chips button[aria-pressed="true"]{background:var(--text);color:var(--asphalt);border-color:var(--text);font-weight:600}
+
+.chartwrap{display:flex;flex-direction:column;min-height:0;min-width:0}
+.viewtabs{align-self:flex-end;margin-bottom:8px}
+.chart{position:relative;flex:1;display:flex;align-items:flex-end;gap:4px;min-height:220px;padding-top:56px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
+.bar{border-radius:6px 6px 2px 2px;min-height:6px;width:100%}
+.g{--c:var(--green)}.a{--c:var(--amber)}.r{--c:var(--red)}
+.bar{background:var(--c)}
+.bar.fc{background:repeating-linear-gradient(135deg,var(--c) 0 7px,color-mix(in srgb,var(--c) 45%,transparent) 7px 12px)}
+.bar.cur{box-shadow:0 0 0 3px var(--text)}
+.blocks{gap:10px}
+.blocks .bar{border-radius:10px}
+.blab{text-align:center;margin-top:10px;color:var(--text);font-size:17px;line-height:1.2}
+.blab svg{display:block;margin:0 auto 4px;width:24px;height:24px}
+.blab.fc{color:var(--muted)}
+.window{position:absolute;top:8px;height:40px;border:3px solid var(--text);border-bottom:none;border-radius:10px 10px 0 0;display:flex;justify-content:center;font-weight:600;font-size:18px;white-space:nowrap;pointer-events:none}
+.window span{background:var(--asphalt);padding:0 10px;margin-top:-14px;height:24px;line-height:24px}
+.daysep{position:absolute;top:56px;bottom:0;border-left:2px dashed var(--line);pointer-events:none}
+.daysep span{position:absolute;top:-2px;left:8px;color:var(--muted);font-size:17px;white-space:nowrap}
+.axis{display:flex;gap:4px;margin-top:10px;color:var(--muted);font-size:17px;font-variant-numeric:tabular-nums}
+.axis div{flex:1;white-space:nowrap;min-width:0}
+.legend{display:flex;gap:24px;margin-top:16px;color:var(--muted);font-size:17px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:8px;vertical-align:-1px}
+.legend i.fc{background:repeating-linear-gradient(135deg,var(--muted) 0 3px,transparent 3px 6px)}
+
+.notice{margin:12px 40px 0;padding:12px 18px;border-radius:12px;background:#3a2f17;color:#ffe2a3;font-size:18px;display:none}
+.notice.show{display:block}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;padding:32px;width:min(600px,92vw);max-height:90vh}
+dialog::backdrop{background:rgba(5,8,12,.7)}
+dialog h2{font-family:var(--cond);font-size:30px;margin:0 0 20px}
+.field{margin-bottom:24px}
+.field>label{display:block;font-size:19px;margin-bottom:8px}
+.field small{display:block;color:var(--muted);font-size:16px;margin-top:6px;line-height:1.4}
+.seg{display:flex;gap:10px}
+.seg button{flex:1;height:56px;border-radius:12px;border:1px solid var(--line);background:transparent;font-size:20px}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--asphalt);font-weight:600}
+.field input,.field select{width:100%;height:56px;border-radius:12px;border:1px solid var(--line);background:var(--asphalt);padding:0 16px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.actions{display:flex;justify-content:flex-end;margin-top:8px}
+.actions button{height:56px;padding:0 28px;border-radius:12px;border:none;background:var(--text);color:var(--asphalt);font-weight:600}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr;gap:24px;padding:16px 20px}
+  header{padding:16px 20px 0}.notice{margin:12px 20px 0}
+  .blocks{gap:4px}.blab{font-size:14px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ladetjek</h1>
+  <span class="place" id="place"></span>
+  <span class="clock" id="clock"></span>
+  <button class="btn" id="refresh" aria-label="Opdater priser">↻</button>
+  <button class="btn" id="openSettings">Indstillinger</button>
+</header>
+<p class="notice" id="notice"></p>
+
+<main>
+  <section class="verdict" aria-live="polite">
+    <p class="state" id="state">Henter priser…</p>
+    <p class="when" id="when"></p>
+    <p class="sub" id="saving"></p>
+    <p class="hint" id="hint"></p>
+    <div class="price"><span class="dot" id="nowdot"></span><b id="nowprice">–</b><span>øre/kWh lige nu</span></div>
+    <div class="durlabel">Hvor længe skal bilen lade?</div>
+    <div class="chips" id="dur"></div>
+  </section>
+
+  <section class="chartwrap">
+    <div class="chips viewtabs" id="views"></div>
+    <div class="chart" id="chart"></div>
+    <div class="axis" id="axis"></div>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i>Billigst</span>
+      <span><i style="background:var(--amber)"></i>Middel</span>
+      <span><i style="background:var(--red)"></i>Dyrest</span>
+      <span><i class="fc"></i>Prognose</span>
+      <span id="pricenote"></span>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <h2>Indstillinger</h2>
+  <div class="field">
+    <label>Prisområde</label>
+    <div class="seg" id="areaSeg">
+      <button data-v="DK1">Vest (DK1)</button>
+      <button data-v="DK2">Øst (DK2)</button>
+    </div>
+    <small>Jylland og Fyn er DK1. Sjælland og øerne er DK2.</small>
+  </div>
+  <div class="field">
+    <label for="net">Netselskab</label>
+    <div class="row">
+      <select id="net"><option value="">Uden nettarif</option></select>
+      <button class="btn" id="locate" style="flex:0 0 auto">Find ud fra position</button>
+    </div>
+    <small id="netinfo">Med netselskab regnes nettariffen med, så aftentimerne kl. 17–21 bliver dyrere som på din regning.</small>
+  </div>
+  <div class="field">
+    <label for="gln">Eller GLN-nummer på netselskabet</label>
+    <input id="gln" inputmode="numeric" maxlength="13" placeholder="13 cifre">
+  </div>
+  <div class="field">
+    <label for="supplier">Elselskabets tillæg, øre/kWh</label>
+    <input id="supplier" type="number" inputmode="decimal" step="0.1">
+    <small>Står på din elregning. Lad den stå på 0, hvis du ikke kender det.</small>
+  </div>
+  <p class="sub" style="font-size:16px;margin:0 0 20px">Dine indstillinger gemmes i bilen og i sidens adresse. Gem siden som favorit efter du har trykket Gem, så husker favoritten dem altid.</p>
+  <div class="actions"><button id="saveSettings">Gem</button></div>
+</dialog>
+
+<script>
+(function(){
+  const API = "https://elpriser.org/api";
+  const TZ = "Europe/Copenhagen";
+  const DURS = [1,2,3,4,6];
+  const WD = ["søn","man","tir","ons","tor","fre","lør"];
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="#f2c84b" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" fill="#f2c84b"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="#d9dde3"/></svg>';
+
+  let cfg = {area:"DK1", gln:"", netName:"", supplier:0, dur:3, view:"hours"};
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem("ladetjek2") || "{}")); } catch(e){}
+  // Indstillinger i adressen vinder over browserens lager
+  const qs = new URLSearchParams(location.search);
+  if (qs.get("area") === "DK1" || qs.get("area") === "DK2") cfg.area = qs.get("area");
+  if (qs.has("gln")) cfg.gln = /^\d{13}$/.test(qs.get("gln")) ? qs.get("gln") : "";
+  if (qs.has("net")) cfg.netName = qs.get("net");
+  if (qs.has("tillaeg")) cfg.supplier = parseFloat(qs.get("tillaeg")) || 0;
+  if ([1,2,3,4,6].includes(+qs.get("dur"))) cfg.dur = +qs.get("dur");
+  if (["hours","days"].includes(qs.get("vis"))) cfg.view = qs.get("vis");
+
+  function syncUrl(){
+    const p = new URLSearchParams({area:cfg.area, dur:cfg.dur, vis:cfg.view});
+    if (cfg.gln) p.set("gln", cfg.gln);
+    if (cfg.netName) p.set("net", cfg.netName);
+    if (cfg.supplier) p.set("tillaeg", cfg.supplier);
+    try { history.replaceState(null, "", location.pathname + "?" + p.toString()); } catch(e){}
+  }
+  const save = () => { try { localStorage.setItem("ladetjek2", JSON.stringify(cfg)); } catch(e){} syncUrl(); };
+  save();
+  const $ = id => document.getElementById(id);
+
+  let rows = [];   // {date, hour, price (øre), fc:boolean}
+  let demo = false;
+
+  function cphNow(){
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+    return {date:`${parts.year}-${parts.month}-${parts.day}`, hour:+parts.hour};
+  }
+  const addDays = (iso,n) => { const d = new Date(iso+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+  const wd = iso => WD[new Date(iso+"T12:00:00Z").getUTCDay()];
+  const pad = h => String(h).padStart(2,"0");
+
+  async function load(){
+    $("state").textContent = "Henter priser…";
+    const mode = /^\d{13}$/.test(cfg.gln) ? `net_inkl_alt&gln=${cfg.gln}` : "inkl_alt";
+    try {
+      const r = await fetch(`${API}/forecast?area=${cfg.area}&mode=${mode}`, {cache:"no-store"});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json();
+      rows = [];
+      for (const d of j.days || []){
+        if (!d.prices) continue;
+        for (const p of d.prices){
+          if (p.price == null) continue;
+          rows.push({date:d.date, hour:p.hour, price:p.price*100 + (+cfg.supplier||0), fc:d.type === "forecast"});
+        }
+      }
+      if (!rows.length) throw new Error("tom");
+      demo = false; $("notice").classList.remove("show");
+    } catch(e){
+      rows = demoRows(); demo = true;
+      $("notice").textContent = "Kunne ikke hente elpriser. Viser eksempeldata. Tjek internetforbindelsen og tryk ↻.";
+      $("notice").classList.add("show");
+    }
+    render();
+  }
+
+  function demoRows(){
+    const out = [], {date} = cphNow();
+    for (let d=0; d<10; d++) for (let h=0; h<24; h++){
+      const base = 1.6 + 0.5*Math.sin((h-9)/24*2*Math.PI) + (h>=17&&h<21?0.9:0) - (h>=1&&h<5?0.4:0) + 0.35*Math.sin(d*1.3);
+      out.push({date:addDays(date,d), hour:h, price:Math.max(20,(base+Math.random()*0.15)*100), fc:d>=2});
+    }
+    return out;
+  }
+
+  function tertiles(vals){
+    const s = [...vals].sort((a,b)=>a-b);
+    const t1 = s[Math.floor(s.length/3)], t2 = s[Math.floor(s.length*2/3)];
+    return p => p < t1 ? "g" : p < t2 ? "a" : "r";
+  }
+  function bestWindow(prices, N){
+    N = Math.min(N, prices.length); let best=0, sum=Infinity;
+    for (let i=0;i+N<=prices.length;i++){ let s=0; for (let k=0;k<N;k++) s+=prices[i+k]; if (s<sum){sum=s;best=i;} }
+    return {i:best, n:N, avg:sum/N};
+  }
+  function dayWord(date, today){
+    if (date === today) return "";
+    if (date === addDays(today,1)) return "i morgen ";
+    return wd(date) + " ";
+  }
+
+  // Dag 06–18 og nat 18–06, værdi = gennemsnit af billigste sammenhængende ladevindue i perioden
+  function blocks(future){
+    const out = [];
+    const dates = [...new Set(future.map(r=>r.date))];
+    for (const d of dates){
+      const n1 = addDays(d,1);
+      const dag = future.filter(r => r.date===d && r.hour>=6 && r.hour<18);
+      const nat = future.filter(r => (r.date===d && r.hour>=18) || (r.date===n1 && r.hour<6));
+      for (const [kind, hrs] of [["dag",dag],["nat",nat]]){
+        if (hrs.length < 2) continue;
+        const w = bestWindow(hrs.map(r=>r.price), cfg.dur);
+        out.push({date:d, kind, value:w.avg, fc:hrs.slice(w.i,w.i+w.n).some(r=>r.fc), start:hrs[w.i], end:hrs[w.i+w.n-1]});
+      }
+    }
+    return out;
+  }
+
+  function render(){
+    const now = cphNow();
+    let i0 = rows.findIndex(r => r.date===now.date && r.hour===now.hour);
+    if (i0 < 0) i0 = 0;
+    const future = rows.slice(i0);
+    if (!future.length) return;
+    const known = future.filter(r=>!r.fc);
+    const base = known.length ? known : future;
+
+    // Anbefaling ud fra kendte priser
+    const kp = base.map(r=>r.price);
+    const w = bestWindow(kp, cfg.dur);
+    const nowAvg = kp.slice(0,w.n).reduce((a,b)=>a+b,0)/w.n;
+    const s = base[w.i], e = base[w.i+w.n-1];
+    const span = `kl. ${pad(s.hour)}–${pad((e.hour+1)%24)}`;
+    if (w.i === 0){
+      $("state").textContent = "Lad nu"; $("state").className = "state now";
+      $("when").textContent = `Billigst de næste ${w.n} ${w.n===1?"time":"timer"}, ${span}`;
+      $("saving").textContent = "";
+    } else {
+      $("state").textContent = "Vent"; $("state").className = "state";
+      $("when").textContent = `Billigst ${dayWord(s.date, now.date)}${span}`;
+      const diff = nowAvg - w.avg;
+      $("saving").textContent = `Ca. ${Math.round(diff)} øre/kWh billigere end at starte nu. Det er ${Math.round(diff*0.5)} kr. sparet på 50 kWh.`;
+    }
+
+    // Prognose-hint: billigere periode længere ude?
+    const bl = blocks(future);
+    const cheapFc = bl.filter(b=>b.fc).sort((a,b)=>a.value-b.value)[0];
+    if (cheapFc && cheapFc.value < w.avg - 15){
+      $("hint").textContent = `Prognosen peger på endnu billigere strøm ${dayWord(cheapFc.date, now.date) || "i dag "}${cheapFc.kind==="nat"?"nat":""} omkring ${Math.round(cheapFc.value)} øre/kWh. Kan bilen vente, så kig igen.`;
+      $("hint").classList.add("show");
+    } else $("hint").classList.remove("show");
+
+    const clsNow = tertiles(future.slice(0,48).map(r=>r.price));
+    $("nowprice").textContent = Math.round(future[0].price);
+    $("nowdot").style.background = `var(--${({g:"green",a:"amber",r:"red"})[clsNow(future[0].price)]})`;
+    $("place").textContent = (cfg.area==="DK1"?"Vestdanmark":"Østdanmark") + (cfg.netName ? `, ${cfg.netName}` : "");
+    $("pricenote").textContent = demo ? "Eksempeldata" :
+      (/^\d{13}$/.test(cfg.gln) ? "Pris inkl. afgifter, nettarif og moms" : "Pris inkl. afgifter og moms, uden nettarif");
+
+    renderChips();
+    cfg.view === "days" ? drawBlocks(bl, now) : drawHours(future.slice(0,48), w, base === known, now);
+  }
+
+  function drawHours(view, w, wInView, now){
+    const chart = $("chart"), axis = $("axis");
+    chart.className = "chart"; chart.innerHTML = ""; axis.innerHTML = ""; axis.style.display = "";
+    const prices = view.map(r=>r.price), cls = tertiles(prices);
+    const lo = Math.min(0,...prices), hi = Math.max(...prices);
+    view.forEach((r,i) => {
+      const col = document.createElement("div"); col.className = "col";
+      const b = document.createElement("div");
+      b.className = `bar ${cls(r.price)}${r.fc?" fc":""}${i===0?" cur":""}`;
+      b.style.height = (6 + 94*(r.price-lo)/((hi-lo)||1)) + "%";
+      b.title = `${wd(r.date)} kl. ${pad(r.hour)}: ${Math.round(r.price)} øre${r.fc?" (prognose)":""}`;
+      col.appendChild(b); chart.appendChild(col);
+      const a = document.createElement("div"); a.textContent = i%3===0 ? pad(r.hour) : ""; axis.appendChild(a);
+      if (i>0 && r.date !== view[i-1].date){
+        const s = document.createElement("div"); s.className = "daysep";
+        s.style.left = `calc(${i/view.length*100}% - 2px)`;
+        s.innerHTML = `<span>${r.date===addDays(now.date,1)?"i morgen":wd(r.date)}</span>`;
+        chart.appendChild(s);
+      }
+    });
+    if (wInView && w.i + w.n <= view.length){
+      const box = document.createElement("div"); box.className = "window";
+      box.style.left = (w.i/view.length*100) + "%";
+      box.style.width = `calc(${w.n/view.length*100}% - 4px)`;
+      box.innerHTML = `<span>${Math.round(w.avg)} øre</span>`;
+      chart.appendChild(box);
+    }
+  }
+
+  function drawBlocks(bl, now){
+    const chart = $("chart"), axis = $("axis");
+    chart.className = "chart blocks"; chart.innerHTML = ""; axis.innerHTML = ""; axis.style.display = "none";
+    const vals = bl.map(b=>b.value), cls = tertiles(vals);
+    const lo = Math.min(0,...vals), hi = Math.max(...vals);
+    bl.forEach(b => {
+      const col = document.createElement("div"); col.className = "col";
+      const bar = document.createElement("div");
+      bar.className = `bar ${cls(b.value)}${b.fc?" fc":""}`;
+      bar.style.height = `calc(${10 + 90*(b.value-lo)/((hi-lo)||1)}% - 60px)`;
+      bar.title = `${wd(b.date)} ${b.kind}: ${Math.round(b.value)} øre, kl. ${pad(b.start.hour)}–${pad((b.end.hour+1)%24)}`;
+      const lab = document.createElement("div"); lab.className = "blab" + (b.fc?" fc":"");
+      lab.innerHTML = (b.kind==="dag"?SUN:MOON) + (b.date===now.date?"i dag":wd(b.date));
+      col.append(bar, lab); chart.appendChild(col);
+    });
+  }
+
+  function renderChips(){
+    $("dur").innerHTML = "";
+    DURS.forEach(d => {
+      const bt = document.createElement("button");
+      bt.textContent = d + " t"; bt.setAttribute("aria-pressed", String(d===cfg.dur));
+      bt.onclick = () => { cfg.dur = d; save(); render(); };
+      $("dur").appendChild(bt);
+    });
+    $("views").innerHTML = "";
+    [["hours","Næste 48 timer"],["days","10 dage"]].forEach(([v,t]) => {
+      const bt = document.createElement("button");
+      bt.textContent = t; bt.setAttribute("aria-pressed", String(v===cfg.view));
+      bt.onclick = () => { cfg.view = v; save(); render(); };
+      $("views").appendChild(bt);
+    });
+  }
+
+  function tick(){
+    $("clock").textContent = new Intl.DateTimeFormat("da-DK",{timeZone:TZ,hour:"2-digit",minute:"2-digit"}).format(new Date());
+  }
+
+  // Indstillinger
+  const dlg = $("settings");
+  let pendingArea = cfg.area;
+  const syncSeg = () => document.querySelectorAll("#areaSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v===pendingArea)));
+  document.querySelectorAll("#areaSeg button").forEach(b => b.onclick = () => { pendingArea = b.dataset.v; syncSeg(); });
+
+  // Netselskaber og GLN (kilde: MTrab/energidataservice, chargeowners.py)
+  const NETS = [
+    ["Aal El-Net","5790001095451"],["Cerius","5790000705184"],["Dinel","5790000610099"],
+    ["El-net Kongerslev","5790002502699"],["Elektrus","5790000836239"],["Elinord","5790001095277"],
+    ["Elnet Midt","5790001100520"],["FLOW Elnet","5790000392551"],["Forsyning Elnet","5790001088309"],
+    ["Hammel Elforsyning Net","5790001090166"],["Hurup Elværk Net","5790000610839"],["Ikast El Net","5790000682102"],
+    ["Konstant Net","5790000704842"],["L-Net","5790001090111"],["Midtfyns Elforsyning","5790001089023"],
+    ["N1","5790001089030"],["Netselskabet Elværk","5790000681358"],["NOE Net","5790000395620"],
+    ["Nord Energi Net","5790000610877"],["Radius Elnet","5790000705689"],["RAH Net","5790000681327"],
+    ["Ravdex","5790000836727"],["Sunds Net","5790001095444"],["Tarm Elværk Net","5790000706419"],
+    ["TREFOR El-net","5790000392261"],["TREFOR El-net Øst","5790000706686"],["Veksel","5790001088217"],
+    ["Vores Elnet","5790000610976"],["Zeanet","5790001089375"]
+  ].map(([name,gln])=>({name,gln}));
+  let netList = NETS;
+  (function fillNetList(){
+    const sel = $("net");
+    netList.forEach(n => { const o = document.createElement("option"); o.value = n.gln; o.textContent = n.name; sel.appendChild(o); });
+  })();
+  const norm = t => (t||"").toLowerCase().replace(/a\/s|a\.m\.b\.a|[-–]\s*\d+/g,"").replace(/\s+/g," ").trim();
+
+  $("net").onchange = () => { $("gln").value = $("net").value; };
+
+  $("locate").onclick = () => {
+    if (!navigator.geolocation){ $("netinfo").textContent = "Browseren kan ikke dele position. Vælg netselskab på listen."; return; }
+    $("netinfo").textContent = "Finder dit netselskab…";
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try {
+        const j = await (await fetch(`${API}/supplierlookup?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)).json();
+        const found = norm(j.name);
+        const hit = netList.find(n => found.startsWith(norm(n.name))) || netList.find(n => found.includes(norm(n.name).split(" ")[0]));
+        if (hit){ $("net").value = hit.gln; $("gln").value = hit.gln; $("netinfo").textContent = `Fundet: ${hit.name} (${j.address||""})`; }
+        else $("netinfo").textContent = `Dit netselskab er ${j.name||"ukendt"}. Vælg det på listen.`;
+      } catch(e){ $("netinfo").textContent = "Kunne ikke slå netselskabet op. Vælg det på listen."; }
+    }, () => { $("netinfo").textContent = "Positionen blev ikke delt. Vælg netselskab på listen."; });
+  };
+
+  $("openSettings").onclick = () => {
+    pendingArea = cfg.area; syncSeg();
+    $("gln").value = cfg.gln; $("supplier").value = cfg.supplier; $("net").value = cfg.gln;
+    dlg.showModal();
+  };
+  $("saveSettings").onclick = () => {
+    cfg.area = pendingArea;
+    cfg.gln = $("gln").value.trim();
+    const hit = netList.find(n=>n.gln===cfg.gln); cfg.netName = hit ? hit.name : "";
+    cfg.supplier = parseFloat($("supplier").value) || 0;
+    save(); dlg.close(); load();
+  };
+  $("refresh").onclick = load;
+
+  tick(); setInterval(tick, 15e3);
+  setInterval(render, 60e3);
+  setInterval(load, 30*60e3);
+  load();
+})();
+</script>
+</body>
+</html>
